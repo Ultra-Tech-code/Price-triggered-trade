@@ -4,14 +4,14 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import "../src/PriceVault.sol";
 import "../src/MockERC20.sol";
-import "../src/MockPriceFeed.sol";
+import "@chainlink/contracts/tests/MockV3Aggregator.sol";
 import "../src/MockUniswapRouter.sol";
 
 contract PriceVaultTest is Test {
     PriceVault vault;
     MockERC20 tokenA;
     MockERC20 tokenB;
-    MockPriceFeed feed;
+    MockV3Aggregator feed;
     MockUniswapRouter router;
 
     function setUp() public {
@@ -19,7 +19,7 @@ contract PriceVaultTest is Test {
         tokenA = new MockERC20("TokenA", "TKA", 18);
         tokenB = new MockERC20("TokenB", "TKB", 18);
         tokenA.mint(address(this), 1_000_000 ether);
-        feed = new MockPriceFeed(200);
+        feed = new MockV3Aggregator(8, 200);
         router = new MockUniswapRouter();
         // fund router with buy token
         tokenB.mint(address(router), 1_000_000 ether);

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "@chainlink/contracts/interfaces/AggregatorV3Interface.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
@@ -8,36 +11,6 @@ interface IERC20 {
     function allowance(address owner, address spender) external view returns (uint256);
     function approve(address spender, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
-}
-
-// Chainlink Aggregator interface (minimal)
-interface AggregatorV3Interface {
-    function latestRoundData()
-        external
-        view
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        );
-}
-
-// Minimal Uniswap V3-style router interface (we only use exactInputSingle)
-interface IUniswapV3SwapRouter {
-    struct ExactInputSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        address recipient;
-        uint256 deadline;
-        uint256 amountIn;
-        uint256 amountOutMinimum;
-        uint160 sqrtPriceLimitX96;
-    }
-
-    function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
 }
 
 contract PriceVault {
@@ -69,14 +42,11 @@ contract PriceVault {
 
     constructor() {}
 
-    // simple swap router address (can be Uniswap-style adapter)
     address public swapRouter;
 
     function setSwapRouter(address _router) external {
         swapRouter = _router;
     }
-    
-
 
     function createOrder(
         address sellToken,
@@ -153,11 +123,11 @@ contract PriceVault {
             }
         }
 
-        // perform swap via Uniswap V3-style router
+        // perform swap via Uniswap V3 router
         require(swapRouter != address(0), "no router");
         // approve router to pull sell token
         IERC20(o.sellToken).approve(swapRouter, o.amount);
-        IUniswapV3SwapRouter.ExactInputSingleParams memory params = IUniswapV3SwapRouter.ExactInputSingleParams({
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
             tokenIn: o.sellToken,
             tokenOut: o.buyToken,
             fee: 3000,
@@ -168,7 +138,7 @@ contract PriceVault {
             sqrtPriceLimitX96: 0
         });
 
-        uint256 amountOut = IUniswapV3SwapRouter(swapRouter).exactInputSingle(params);
+        uint256 amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
 
         // mark inactive and zero out amount
         o.amount = 0;

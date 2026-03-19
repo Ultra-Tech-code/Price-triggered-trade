@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@chainlink/contracts/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/shared/interfaces/AggregatorV3Interface.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 interface IERC20 {

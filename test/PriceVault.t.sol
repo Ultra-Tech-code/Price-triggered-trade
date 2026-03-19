@@ -15,7 +15,6 @@ contract PriceVaultTest is Test {
     MockUniswapRouter router;
 
     function setUp() public {
-        vault = new PriceVault();
         tokenA = new MockERC20("TokenA", "TKA", 18);
         tokenB = new MockERC20("TokenB", "TKB", 18);
         tokenA.mint(address(this), 1_000_000 ether);
@@ -23,13 +22,23 @@ contract PriceVaultTest is Test {
         router = new MockUniswapRouter();
         // fund router with buy token
         tokenB.mint(address(router), 1_000_000 ether);
-        vault.setSwapRouter(address(router));
+        vault = new PriceVault(address(router));
     }
 
     function testCreateAndCancelOrder() public {
         // approve vault to pull tokens
         tokenA.approve(address(vault), 100 ether);
-        uint256 orderId = vault.createOrder(address(tokenA), address(tokenB), address(feed), 100 ether, 150, PriceVault.TriggerType.Above, PriceVault.OrderKind.Limit, 0, 100);
+        uint256 orderId = vault.createOrder(
+            address(tokenA), address(tokenB), address(feed),
+            100 ether, // totalAmount
+            100 ether, // amountPerSwap (Limit == total)
+            150, // priceTrigger
+            PriceVault.TriggerType.Above,
+            PriceVault.OrderKind.Limit,
+            3000, // poolFee
+            0, // cadence (0 for Limit)
+            100 // maxSlippageBps (1%)
+        );
         uint256[] memory orders = vault.getUserOrders(address(this));
         assertEq(orders.length, 1);
         assertEq(orders[0], orderId);
@@ -47,7 +56,17 @@ contract PriceVaultTest is Test {
 
         // router already funded in setUp
 
-        uint256 orderId = vault.createOrder(address(tokenA), address(tokenB), address(feed), 100 ether, 150, PriceVault.TriggerType.Above, PriceVault.OrderKind.Limit, 0, 100);
+        uint256 orderId = vault.createOrder(
+            address(tokenA), address(tokenB), address(feed),
+            100 ether, // totalAmount
+            100 ether, // amountPerSwap
+            150, // priceTrigger
+            PriceVault.TriggerType.Above,
+            PriceVault.OrderKind.Limit,
+            3000, // poolFee
+            0, // cadence
+            100 // maxSlippageBps
+        );
 
         // feed currently 200 > 150 so execution allowed
         vault.executeOrder(orderId);
